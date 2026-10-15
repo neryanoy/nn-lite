@@ -1,0 +1,75 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lite</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lite">
+<meta name="theme-color" content="#1b2f86">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{--bg:#f3f6f9;--card:#fff;--text:#1c2733;--muted:#5b6b7a;--ink:#1b2f86;--line:#d5dde5}
+  @media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1c222a;--text:#e8edf2;--muted:#9aa7b4;--ink:#6d8dff;--line:#2c3540}}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif}
+  main{max-width:420px;margin:0 auto;padding:max(28px,env(safe-area-inset-top)) 16px 32px;display:grid;gap:14px}
+  h1{margin:0;font-size:24px}
+  p{margin:0;color:var(--muted);font-size:15px;line-height:1.45}
+  .go{display:grid;gap:10px}
+  a.btn,button{display:block;text-align:center;text-decoration:none;font:600 18px system-ui,sans-serif;padding:16px;
+    border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+  a.btn.main,button.main{background:var(--ink);color:#fff;border-color:var(--ink)}
+  input{font:600 24px system-ui,sans-serif;letter-spacing:.3em;text-align:center;padding:14px;border-radius:14px;
+    border:1px solid var(--line);background:var(--card);color:var(--text);width:100%;box-sizing:border-box}
+  .small{font-size:13px;text-align:center}
+  .small a{color:var(--muted)}
+  [hidden]{display:none!important}
+</style></head><body><main>
+  <h1>Lite</h1>
+  <p id="msg">מחפש את הכתובת הנוכחית…</p>
+  <form id="login" class="go" hidden>
+    <input id="code" type="password" inputmode="numeric" autocomplete="current-password" placeholder="קוד" required>
+    <button class="main" type="submit">כניסה</button>
+    <p class="small">הקוד נשמר במכשיר הזה בלבד, ונכנסים מכאן בלחיצה אחת.</p>
+  </form>
+  <div id="links" class="go" hidden>
+    <a class="btn main" data-p="/">📊 Lite</a>
+    <a class="btn" data-p="/hub">🧭 מרכז הסוכנים</a>
+    <a class="btn" data-p="/hub/skills">🧩 סקילים</a>
+    <a class="btn" data-p="/hub/adina">🌿 Hub של עדינה</a>
+    <a class="btn" data-p="/links">🔗 קישורים - עדינה, אתרים, קישורים קבועים</a>
+    <a class="btn" data-p="/feed">📱 פיד</a>
+    <p class="small"><a href="#" id="forget">להחליף קוד</a></p>
+  </div>
+</main>
+<script>
+  // The Lite runs on this PC behind a Cloudflare tunnel whose address changes on every
+  // restart. The PC publishes the current address to tunnel.json; this page stays put.
+  // The code lives only in this browser (localStorage), never in this public repo.
+  const $ = id => document.getElementById(id);
+  const store = {
+    get() { try { return localStorage.getItem('lite_code') || ''; } catch (e) { return ''; } },
+    set(v) { try { localStorage.setItem('lite_code', v); } catch (e) {} },
+    del() { try { localStorage.removeItem('lite_code'); } catch (e) {} }
+  };
+  let base = '';
+  const target = p => base + p + (p.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(store.get());
+  const want = location.hash.replace('#', '');      // #hub, #feed, #skills, #links = jump straight there
+  const ROUTES = {hub:'/hub', skills:'/hub/skills', feed:'/feed', lite:'/', adina:'/hub/adina', links:'/links'};
+
+  function show() {
+    const code = store.get();
+    $('login').hidden = !!code;
+    $('links').hidden = !code;
+    $('msg').textContent = code ? 'לאן להיכנס?' : 'הכניסו את הקוד פעם אחת.';
+    document.querySelectorAll('[data-p]').forEach(a => a.href = target(a.dataset.p));
+    if (code && ROUTES[want]) location.replace(target(ROUTES[want]));
+  }
+  $('login').onsubmit = e => { e.preventDefault(); store.set($('code').value.trim()); show(); };
+  $('forget').onclick = e => { e.preventDefault(); store.del(); $('code').value = ''; show(); };
+
+  fetch('tunnel.json?t=' + Date.now(), {cache:'no-store'})
+    .then(r => r.json())
+    .then(d => { base = (d.url || '').replace(/\/+$/, ''); if (!base) throw 0; show(); })
+    .catch(() => { $('msg').textContent = 'המחשב לא פרסם כתובת כרגע. נסו שוב בעוד דקה.'; });
+</script>
+</body></html>
